@@ -2,6 +2,9 @@
 
 XBASIC - Extended BASIC Level II for TRS-80 Model I Cassette
 
+Version: 0.0.1-alpha
+
+
 ## Description
 
 This is an extension for the TRS-80 Model I ROM BASIC Level II, I wrote in the mid 80's, using Microsoft Editor/Assembler Plus.
@@ -13,9 +16,9 @@ This extension adds some features to Level II:
 - some graphical statements: `DRAW`, `INVERSE`;
 - some audio/music statements: `BEEP`, `NOISE`, `ZAP`, `PLAY`;
 - some Disk BASIC statements and functions (witn extensions): `LINE INPUT`, `DEF FN`, `DEF USRn`, `FN`, `USRn`, `INSTR`, `&H`, `&O`, `&B`;
-- some conversion functions: `BASFN(tokens$)`, `HEX$(n)`, `BIN$(n)`, `CAPS$(str$)`, `BASFN(tokens$)`, `COMP$(text$)`, `EXT$(tokens$)`;
-- dynamic statement execution: `EXEC(tokens)`;
-- some memory management statements and functions: `DEEK(a)`, `DOKE a,w`, `GENER a,hex$`, `MOVE s,d,l`, `CALL a`, `RENEW`, `LOC(a,str)`;
+- some conversion functions: `HEX$(n)`, `BIN$(n)`, `CAPS$(str$)`, `COMP$(text$)`, `EXT$(tokens$)`;
+- dynamic statement execution: `EXEC tokens`, `BASFN(tokens$)`;
+- some memory management statements and functions: `DEEK(a)`, `DOKE a,w`, `STORE a,hex$`, `MOVE s,d,l`, `CALL a`, `RENEW`, `LOC(a,str)`;
 - labels for GOTO, GOSUB, RESUME;
 - computed GOTO, GOSUB, RESUME;
 - formatted print to string variable (useful with USING, like C's sfprint()): `PRINT #a$, ...`;
@@ -29,6 +32,7 @@ This extension adds some features to Level II:
 - long error messages.
 
 More details [here](XBASIC/XBASIC.md).
+
 
 ## Disclaimer
 

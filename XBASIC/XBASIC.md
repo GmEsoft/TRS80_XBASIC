@@ -1,6 +1,11 @@
 XBASIC -  Model I Level II + Extensions
 =======================================
 
+Version: 0.0.1-alpha
+
+
+
+
 Statements
 ----------
 
@@ -32,9 +37,14 @@ Recover a program after a `NEW` command.
 Renumber a program starting at line number `start` with increment `incr`.
 
 
-#### `GENER addr, hexbytes$`
+#### `STORE addr, hexbytes$`
 
 Store at `addr`consecutive bytes represented as hex values in `hexbytes$`.
+
+Example:
+```basic
+10 STORE &H3FFE,"2A2A"
+```
 
 
 #### `EXEC tokens$`
@@ -108,6 +118,12 @@ Format: `{l1}[#][l2[#]]{n}[.]` for notes, and `<{n}[.]` for silences.
 | Quarter  |   3   |
 | Eight    |   4   |
 | Sixth    |   5   |
+
+Example:
+```basic
+PLAY "HC2IE2JH5 L5J5H3.E4 HC2IE2JH1 HC2IE2JH5 L5J5H2 FD2IG3.KI4JH1"
+```
+
 
 
 
@@ -292,6 +308,8 @@ Expand a tokenized BASIC back to readable form.
 
 
 #### `INSTR([pos,] str1$, str2$)`
+
+
 
 
 Other features

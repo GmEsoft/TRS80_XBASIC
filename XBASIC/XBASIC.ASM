@@ -1,48 +1,141 @@
 ;=====	XBASIC	12/04/86
 
+;-----	Define the version of XBASIC
+DEFVERS	MACRO
+	DB	"XBASIC v0.0.1-alpha"
+	DB	0DH,00H
+	ENDM
+
+;-----	Define a DOS exit
 DEFV	MACRO	#A,#B
 	ORG	#A
 	JP	#B
 	ENDM
 
-JRIF	MACRO	#A,#J
+;-----	Compare HL with arg1, JR to arg2 if equal
+CP_JRZ	MACRO	#A,#J
 	LD	DE,#A
 	CALL	1C90H		;Compare HL,DE (RST 18H)
 	JR	Z,#J
 	ENDM
 
-_MOVE	MACRO	#A,#B,#C
-	LD	HL,#A
+;-----	Intercept a return address on the stack
+;	#A	Stack level
+;	#B	Test address
+;	#C	Jump address
+;	Intercept return address at SP+#A;
+;	if equal to #B replace it with #C
+INTRCPT	MACRO	#A,#B,#C
+	LD	HL,#A+2
 	LD	DE,#B
 	LD	BC,#C
 	RST	30H
 	ENDM
 
-;-----	Install vectors
-	DEFV	41BEH,PRE	; called from 2174H: turn off cass and reset curr dev to video
-	DEFV	41CAH,PRI	; called from 206FH: PRINT routine
-	DEFV	41ACH,XRES	; called from 1A1CH: return to "READY >" prompt
-	DEFV	400FH,TTSP	; RST 30H vector
-	DEFV	4006H,TT3	; RST 18H vector
-	DEFV	41C1H,TT4	; called from 032CH: output to screen, printer or tape
-	DEFV	41D0H,TT1	; called from 2103H: position video to next line
-	DEFV	41C4H,T1	; called from 0358H: scan keyboard
-	DEFV	4003H,RST16	; RST 10H vector
+DEFT	MACRO	#A,#B
+	DEFB	'#A'+80H
+	DEFM	'#B'
+	ENDM
 
-	ORG	42F0H
+;-----	Install vectors
+
+
+	ORG	4026H		;*PR DCB
+	DEFW	PR
+
+	ORG	40ECH		;EDIT line number
+	DEFW	10
+
+	ORG	40E4H		;AUTO increment value
+	DEFW	10
+
+	DEFV	4003H,RST10H	; RST 10H vector
+	DEFV	4006H,RST18H	; RST 18H vector
+	DEFV	400FH,RST30H	; RST 30H vector
+	DEFV	4152H,EXT	; CVI -> EXT$ (EXPAND)
+	DEFV	4155H,FN0	; FN vector
+	DEFV	4158H,BASFN	; CVS -> BASFN
+	DEFV	415BH,DEF0	; DEF vector
+	DEFV	415EH,CAPS	; CVD -> CAPS$
+	DEFV	4161H,DEEK_	; EOF -> DEEK
+	DEFV	4164H,ASN	; LOC -> ASN
+	DEFV	4167H,ACS	; LOF -> ACS
+	DEFV	416AH,COMP	; MKI$ -> COMP$
+	DEFV	416DH,HEX	; MKS$ -> HEX$
+	DEFV	4170H,BIN	; MKD$ -> BIN$
+	DEFV	4173H,EXEC	; CMD -> EXEC
+	DEFV	4176H,LOC	; TIME$ -> LOC
+	DEFV	4179H,PLAY	; OPEN -> PLAY
+	DEFV	417CH,ZAP	; FIELD -> ZAP
+	DEFV	417FH,BEEP	; GET -> BEEP
+	DEFV	4182H,DRAW	; PUT -> DRAW
+	DEFV	4185H,INVERS	; CLOSE -> INVERSE
+	DEFV	4188H,NOISE	; LOAD -> NOISE
+	DEFV	418BH,MERGE	; MERGE
+	DEFV	418EH,MOVE	; NAME -> MOVE
+	DEFV	4191H,STORE	; KILL -> GENER
+	DEFV	4194H,AMPERS	; '&' vector (&B,&0,&[H]...)
+	DEFV	4197H,CALL	; LSET -> CALL
+	DEFV	419AH,DOKE	; RSET -> DOKE
+	DEFV	419DH,INS50	; INSTR vector
+	DEFV	41A0H,RENEW	; SAVE -> RENEW
+	DEFV	41A3H,LINE	; LINE input
+	DEFV	41A6H,XERROR	; DOS exit for error processing
+	DEFV	41A9H,US0	; USR0-9 vector
+	DEFV	41ACH,XRES	; called at 1A1CH: return to "READY >" prompt
+	DEFV	41AFH,XEDIT	; called at 0368H: Keyboard routine 0361H DOS exit
+	DEFV	41BEH,PRE	; called at 2174H: termination of PRINT stmt:
+				;   turn off cass and reset curr dev to video
+	DEFV	41C1H,TT4	; called at 032CH: output to screen, printer or tape
+	DEFV	41C4H,T1	; called at 0358H: scan keyboard
+	DEFV	41CAH,PRI	; called at 206FH: PRINT routine, check arg '#'
+	DEFV	41D0H,TT1	; called at 2103H: position video to next line
+	DEFV	41D3H,TAB255	; PRINT TAB and PRINT#-1 DOS exit
+
+	ORG	4016H		;*KI DCB + 1
+	DEFW	KIDVR		;
+	DEFW	0
+	DEFW	4030H
+	NOP
+	DEFS	1		;*DO DCB
+	DEFW	DODVR		;
+	DEFS	2
+	NOP
+	DEFB	8FH		;Block cursor
+	NOP
+
+PTBCDE	EQU	09B4H
+CSNG	EQU	0AB1H
+SNGPSH	EQU	09A4H
+GTBCDE	EQU	09BFH
+SNGMUL	EQU	0847H
+SNGSUB	EQU	0713H
+SNGSQR	EQU	13E7H
+SNGDIV	EQU	08A2H
+SNGATN	EQU	15BDH
+CHKSGN	EQU	0994H
+
+
+MEM1	EQU	411DH		;start of WRA1 DP value; general purpose variable
+BCHFLG	EQU	MEM1+2
+
+
+
+;=====	Main XBASIC system
+	ORG	42E8H
 
 ;-----	Intercept RST 10H vector
-RST16	PUSH	IX
+RST10H	PUSH	IX
 	EXX
 	LD	IX,0
 	ADD	IX,SP
 	LD	L,(IX+4)
 	LD	H,(IX+5)
-	JRIF	1EC5H,CG	;intercept GOTO routine to CG (computed GOTO)
-	JRIF	1B1AH,CG	;intercept LIST routine to CG
-	JRIF	1F76H,CG	;intercept ON ERROR GOTO routine to CG
-	JRIF	1FAAH,CG	;intercept ON n GOTO routine to CG
-	JRIF	1FC4H,CG	;intercept RESUME routine to CG
+	CP_JRZ	1EC5H,CG	;intercept GOTO routine to CG (computed GOTO)
+	CP_JRZ	1B1AH,CG	;intercept LIST routine to CG
+	CP_JRZ	1F76H,CG	;intercept ON ERROR GOTO routine to CG
+	CP_JRZ	1FAAH,CG	;intercept ON n GOTO routine to CG
+	CP_JRZ	1FC4H,CG	;intercept RESUME routine to CG
 	LD	DE,1D5BH	;intercept execution phase to QT (quoted label)
 	LD	L,(IX+2)
 	LD	H,(IX+3)
@@ -51,7 +144,7 @@ RST16	PUSH	IX
 	POP	IX
 	JR	Z,QT
 	EXX
-	_MOVE	4,1A82H,SK2	;intercept input line w/o AUTO increment, to SK2
+	INTRCPT	2,1A82H,SK2	;intercept input line w/o AUTO increment, to SK2
 	EXX
 	JP	1D78H		;load and examine next char (RST 10H original ROM code)
 
@@ -149,11 +242,11 @@ CG6	EXX
 	PUSH	HL
 	JR	CG4
 
-;-----	called from 0358H: scan keyboard
+;-----	called at 0358H: scan keyboard
 T1	EXX
 	POP	BC
 	POP	DE
-	LD	HL,1D21H	;RET address to check if T1 was called from 1D1EH (code execution)
+	LD	HL,1D21H	;RET address to check if T1 was called at 1D1EH (code execution)
 	CALL	1C90H		;Compare HL,DE (RST 18H)
 	PUSH	DE
 	PUSH	BC
@@ -227,7 +320,7 @@ T4	CP	0B8H		;CLEAR token ?
 ;-----	RST 30H vector
 ;	verify caller ret address at stack level HL against DE
 ;	on match, replace caller address with BC
-TTSP	PUSH	AF
+RST30H	PUSH	AF
 	ADD	HL,SP
 	LD	A,(HL)
 	CP	E
@@ -242,17 +335,17 @@ TTSP	PUSH	AF
 TT0	POP	AF
 	RET
 
-;-----	called from 2103H: position video to next line
+;-----	called at 2103H: position video to next line
 TT1	EXX
-	_MOVE	6,2FE6H,SK1	;intercept end of EDIT command, to SK1
-	_MOVE	6,2F46H,SK5	;intercept disp curr line in edit mode to SK5
+	INTRCPT	4,2FE6H,SK1	;intercept end of EDIT command, to SK1
+	INTRCPT	4,2F46H,SK5	;intercept disp curr line in edit mode to SK5
 	EXX
 	RET
 
 ;-----	RST 18H vector
 ;	Intercept Compare HL,DE to stuff alternate RET address
-TT3	EXX
-	_MOVE	4,1A6BH,SK3	;if called from AUTO, return to SK3
+RST18H	EXX
+	INTRCPT	2,1A6BH,SK3	;if called at AUTO, return to SK3
 	EXX
 	JP	1C90H		;Compare HL,DE (original RST 18H code in ROM)
 
@@ -288,7 +381,7 @@ SK21	PUSH	DE
 	CALL	CMPRES
 	JP	1A9CH		;ROM processing after tokenization
 
-;-----	intercept when called from AUTO (from 1A6BH)
+;-----	intercept when called at AUTO (from 1A6BH)
 SK3	POP	DE
 	JP	NC,1A5AH	;clear AUTO and return to direct input
 	LD	(40E2H),HL	;current line number
@@ -523,7 +616,7 @@ CMG	LD	HL,0005H
 	LD	(DE),A
 	RET
 
-;-----	called from 206FH: PRINT routine
+;-----	called at 206FH: PRINT routine
 ;	initialize PRINT #var$, [USING "...";] ...
 PRI	CP	'#'
 	RET	NZ
@@ -551,10 +644,10 @@ PRINI1	RST	08H		;check next char
 	POP	DE
 	RET
 
-;-----	called from 032CH: output to screen, printer or tape
+;-----	called at 032CH: output to screen, printer or tape
 TT4	EXX
-	_MOVE	8,2B67H,SK4	;intercept LIST routine before line expansion, to SK4
-	_MOVE	8,2E86H,SK6	;intercept EDIT routine after line expansion, to SK6
+	INTRCPT	6,2B67H,SK4	;intercept LIST routine before line expansion, to SK4
+	INTRCPT	6,2E86H,SK6	;intercept EDIT routine after line expansion, to SK6
 	EXX
 	LD	A,(4043H)	;own storage (TIME$)
 	DEC	A
@@ -572,7 +665,7 @@ TT4	EXX
 	POP	HL
 	RET
 
-;-----	called from 2174H: turn off cass and reset curr dev to video
+;-----	called at 2174H: turn off cass and reset curr dev to video
 ;	finalize PRINT #var$, [USING "...";] ...
 PRE	LD	A,(4043H)	;own storage (TIME$)
 	DEC	A
@@ -607,7 +700,7 @@ PREXI1	POP	BC
 XRES0	XOR	A
 	LD	(409BH),A	;LPRINT current line position
 
-;-----	called from 1A1CH: return to "READY >" prompt
+;-----	called at 1A1CH: return to "READY >" prompt
 ;	Reser flags
 XRES	XOR	A
 	LD	(4043H),A	;own storage (TIME$)
@@ -618,170 +711,130 @@ XRES	XOR	A
 
 TABLE	EQU	$
 
-;	END	2B2H
-
-;=====	XBAS10 12/04/86
-
-;CMPRES	EQU	4516H
-;EXPAND	EQU	44BDH
-
-	ORG	40A4H		;Start of BASIC program location
-	DEFW	END10+1
-
-	ORG	4158H		;CVS vector
-	JP	BASFN		;CVS -> BASFN
-
-	ORG	41AFH		;Keyboard routine 0361H DOS exit (called from 0368H)
-	JP	XEDIT		;
-
-	ORG	416AH		;MKI$ vector
-	JP	COMP		;MKI$ -> COMP$
-
-	ORG	4152H		;CVI vector
-	JP	EXT		;CVI -> EXT$ (EXPAND)
-
-	ORG	4016H		;*KI DCB + 1
-	DEFW	KIDVR		;
-	DEFW	0
-	DEFW	4030H
-	NOP
-	DEFS	1		;*DO DCB
-	DEFW	DODVR		;
-	DEFS	2
-	NOP
-	DEFB	8FH		;Block cursor
-	NOP
-
-DT	MACRO	#A,#B
-	DEFB	'#A'+80H
-	DEFM	'#B'
-	ENDM
-
 ;*MLIST OFF
-	ORG	4686H
-	DT	E,ND		;80
-	DT	F,OR		;81
-	DT	R,ESET		;82
-	DT	S,ET		;83
-	DT	C,LS		;84
-	DT	E,XEC		;85 EXEC (from CMD)
-	DT	R,ANDOM		;86
-	DT	N,EXT		;87
-	DT	D,ATA		;88
-	DT	I,NPUT		;89
-	DT	D,IM		;8A
-	DT	R,EAD		;8B
-	DT	L,ET		;8C
-	DT	G,OTO		;8D
-	DT	R,UN		;8E
-	DT	I,F		;8F
-	DT	R,ESTORE	;90
-	DT	G,OSUB		;91
-	DT	R,ETURN		;92
-	DT	R,EM		;93
-	DT	S,TOP		;94
-	DT	E,LSE		;95
-	DT	T,RON		;96
-	DT	T,ROFF		;97
-	DT	D,EFSTR		;98
-	DT	D,EFINT		;99
-	DT	D,EFSNG		;9A
-	DT	D,EFDBL		;9B
-	DT	L,INE		;9C
-	DT	E,DIT		;9D
-	DT	E,RROR		;9E
-	DT	R,ESUME		;9F
-	DT	O,UT		;A0
-	DT	O,N		;A1
-	DT	P,LAY		;A2 PLAY music$
-	DT	Z,AP		;A3 ZAP (sound)
-	DT	B,EEP		;A4 BEEP loops, pitch
-	DT	D,RAW		;A5 DRAW x1,y1,x2,y2,col
-	DT	I,NVERSE	;A6 INVERSE (video)
-	DT	N,OISE		;A7 NOISE (sound)
-	DT	M,ERGE		;A8 MERGE (program)
-	DT	M,OVE		;A9 MOVE (block of memory)
-	DT	G,ENER		;AA GENER (tokenized string)
-	DT	C,ALL		;AB CALL addr
-	DT	D,OKE		;AC DOKE addr,word
-	DT	R,ENEW		;AD RENEW (reverse NEW)
-	DT	S,YSTEM		;AE
-	DT	L,PRINT		;AF
-	DT	D,EF		;B0
-	DT	P,OKE		;B1
-	DT	P,RINT		;B2
-	DT	C,ONT		;B3
-	DT	L,IST		;B4
-	DT	L,LIST		;B5
-	DT	D,ELETE		;B6
-	DT	A,UTO		;B7
-	DT	C,LEAR		;B8
-	DT	C,LOAD		;B9
-	DT	C,SAVE		;BA
-	DT	N,EW		;BB
-	DT	T,AB(		;BC
-	DT	T,O		;BD
-	DT	F,N		;BE
-	DT	U,SING		;BF
-	DT	V,ARPTR		;C0
-	DT	U,SR		;C1
-	DT	E,RL		;C2
-	DT	E,RR		;C3
-	DT	S,TRING$	;C4
-	DT	I,NSTR		;C5
-	DT	P,OINT		;C6
-	DT	L,OC		;C7 LOC (from TIME$)
-	DT	M,EM		;C8
-	DT	I,NKEY$		;C9
-	DT	T,HEN		;CA
-	DT	N,OT		;CB
-	DT	S,TEP		;CC
+	DEFT	E,ND		;80
+	DEFT	F,OR		;81
+	DEFT	R,ESET		;82
+	DEFT	S,ET		;83
+	DEFT	C,LS		;84
+	DEFT	E,XEC		;85 EXEC (from CMD)
+	DEFT	R,ANDOM		;86
+	DEFT	N,EXT		;87
+	DEFT	D,ATA		;88
+	DEFT	I,NPUT		;89
+	DEFT	D,IM		;8A
+	DEFT	R,EAD		;8B
+	DEFT	L,ET		;8C
+	DEFT	G,OTO		;8D
+	DEFT	R,UN		;8E
+	DEFT	I,F		;8F
+	DEFT	R,ESTORE	;90
+	DEFT	G,OSUB		;91
+	DEFT	R,ETURN		;92
+	DEFT	R,EM		;93
+	DEFT	S,TOP		;94
+	DEFT	E,LSE		;95
+	DEFT	T,RON		;96
+	DEFT	T,ROFF		;97
+	DEFT	D,EFSTR		;98
+	DEFT	D,EFINT		;99
+	DEFT	D,EFSNG		;9A
+	DEFT	D,EFDBL		;9B
+	DEFT	L,INE		;9C
+	DEFT	E,DIT		;9D
+	DEFT	E,RROR		;9E
+	DEFT	R,ESUME		;9F
+	DEFT	O,UT		;A0
+	DEFT	O,N		;A1
+	DEFT	P,LAY		;A2 PLAY music$
+	DEFT	Z,AP		;A3 ZAP (sound)
+	DEFT	B,EEP		;A4 BEEP loops, pitch
+	DEFT	D,RAW		;A5 DRAW x1,y1,x2,y2,col
+	DEFT	I,NVERSE	;A6 INVERSE (video)
+	DEFT	N,OISE		;A7 NOISE (sound)
+	DEFT	M,ERGE		;A8 MERGE (program)
+	DEFT	M,OVE		;A9 MOVE (block of memory)
+	DEFT	S,TORE		;AA STORE (tokenized string)
+	DEFT	C,ALL		;AB CALL addr
+	DEFT	D,OKE		;AC DOKE addr,word
+	DEFT	R,ENEW		;AD RENEW (reverse NEW)
+	DEFT	S,YSTEM		;AE
+	DEFT	L,PRINT		;AF
+	DEFT	D,EF		;B0
+	DEFT	P,OKE		;B1
+	DEFT	P,RINT		;B2
+	DEFT	C,ONT		;B3
+	DEFT	L,IST		;B4
+	DEFT	L,LIST		;B5
+	DEFT	D,ELETE		;B6
+	DEFT	A,UTO		;B7
+	DEFT	C,LEAR		;B8
+	DEFT	C,LOAD		;B9
+	DEFT	C,SAVE		;BA
+	DEFT	N,EW		;BB
+	DEFT	T,AB(		;BC
+	DEFT	T,O		;BD
+	DEFT	F,N		;BE
+	DEFT	U,SING		;BF
+	DEFT	V,ARPTR		;C0
+	DEFT	U,SR		;C1
+	DEFT	E,RL		;C2
+	DEFT	E,RR		;C3
+	DEFT	S,TRING$	;C4
+	DEFT	I,NSTR		;C5
+	DEFT	P,OINT		;C6
+	DEFT	L,OC		;C7 LOC (from TIME$)
+	DEFT	M,EM		;C8
+	DEFT	I,NKEY$		;C9
+	DEFT	T,HEN		;CA
+	DEFT	N,OT		;CB
+	DEFT	S,TEP		;CC
 	DEFB	'+'+80H		;CD
 	DEFB	'-'+80H		;CE
 	DEFB	'*'+80H		;CF
 	DEFB	'/'+80H		;D0
 	DEFB	91+80H		;D1
-	DT	A,ND		;D2
-	DT	O,R		;D3
+	DEFT	A,ND		;D2
+	DEFT	O,R		;D3
 	DEFB	'>'+80H		;D4
 	DEFB	'='+80H		;D5
 	DEFB	'<'+80H		;D6
-	DT	S,GN		;D7
-	DT	I,NT		;D8
-	DT	A,BS		;D9
-	DT	F,RE		;DA
-	DT	I,NP		;DB
-	DT	P,OS		;DC
-	DT	S,QR		;DD
-	DT	R,ND		;DE
-	DT	L,OG		;DF
-	DT	E,XP		;E0
-	DT	C,OS		;E1
-	DT	S,IN		;E2
-	DT	T,AN		;E3
-	DT	A,TN		;E4
-	DT	P,EEK		;E5
-	DT	E,XT$		;E6 EXT$(tokenized string)
-	DT	B,ASFN		;E7 BASFN (from CVS)
-	DT	C,APS$		;E8 CAPS$ (capitalize string)
-	DT	D,EEK		;E9 DEEK(nnnn) -> word
-	DT	A,SN		;EA ASN(x) -> arc sinus
-	DT	A,CS		;EB ACS(x) -> arc cosinus
-	DT	C,OMP$		;EC COMP$(string) -> tokenized string
-	DT	H,EX$		;ED HEX$(x) -> hexadecimal string of x
-	DT	B,IN$		;EE BIN$(x) -> binary string of x
-	DT	C,INT		;EF
-	DT	C,SNG		;F0
-	DT	C,DBL		;F1
-	DT	F,IX		;F2
-	DT	L,EN		;F3
-	DT	S,TR$		;F4
-	DT	V,AL		;F5
-	DT	A,SC		;F6
-	DT	C,HR$		;F7
-	DT	L,EFT$		;F8
-	DT	R,IGHT$		;F9
-	DT	M,ID$		;FA
+	DEFT	S,GN		;D7
+	DEFT	I,NT		;D8
+	DEFT	A,BS		;D9
+	DEFT	F,RE		;DA
+	DEFT	I,NP		;DB
+	DEFT	P,OS		;DC
+	DEFT	S,QR		;DD
+	DEFT	R,ND		;DE
+	DEFT	L,OG		;DF
+	DEFT	E,XP		;E0
+	DEFT	C,OS		;E1
+	DEFT	S,IN		;E2
+	DEFT	T,AN		;E3
+	DEFT	A,TN		;E4
+	DEFT	P,EEK		;E5
+	DEFT	E,XT$		;E6 EXT$(tokenized string)
+	DEFT	B,ASFN		;E7 BASFN (from CVS)
+	DEFT	C,APS$		;E8 CAPS$ (capitalize string)
+	DEFT	D,EEK		;E9 DEEK(nnnn) -> word
+	DEFT	A,SN		;EA ASN(x) -> arc sinus
+	DEFT	A,CS		;EB ACS(x) -> arc cosinus
+	DEFT	C,OMP$		;EC COMP$(string) -> tokenized string
+	DEFT	H,EX$		;ED HEX$(x) -> hexadecimal string of x
+	DEFT	B,IN$		;EE BIN$(x) -> binary string of x
+	DEFT	C,INT		;EF
+	DEFT	C,SNG		;F0
+	DEFT	C,DBL		;F1
+	DEFT	F,IX		;F2
+	DEFT	L,EN		;F3
+	DEFT	S,TR$		;F4
+	DEFT	V,AL		;F5
+	DEFT	A,SC		;F6
+	DEFT	C,HR$		;F7
+	DEFT	L,EFT$		;F8
+	DEFT	R,IGHT$		;F9
+	DEFT	M,ID$		;FA
 	DEFB	"'"+80H		;FB
 	DEFB	80H
 
@@ -896,7 +949,7 @@ BDO1	RET	Z
 XEDIT	EXX
 	POP	BC
 	POP	DE
-	LD	HL,1A7EH	;called from BASIC direct command mode?
+	LD	HL,1A7EH	;called at BASIC direct command mode?
 	CALL	1C90H		;Compare HL,DE (RST 18H)
 	PUSH	DE
 	PUSH	BC
@@ -1084,40 +1137,6 @@ EXT	CALL	2A13H		;get string addr into DE, 1st char in A
 	LD	B,00H
 	CALL	2868H		;quote routine (quote char=B,<NUL>)
 	JP	283CH		;return value as String
-
-END10	NOP
-	NOP
-	NOP
-
-;	END	6CCH
-
-;=====	XBAS20 12/04/86
-
-MEM1	EQU	411DH		;start of WRA1 DP value; general purpose variable
-BCHFLG	EQU	MEM1+2
-
-	ORG	40A4H		;Start of BASIC program location
-	DEFW	END20+1
-
-	ORG	41A3H		;LINE vector
-	JP	LINE		;LINE input
-
-	ORG	4182H		;PUT vector
-	JP	DRAW		;PUT -> DRAW
-
-	ORG	4161H		;EOF vector
-	JP	DEEK		;EOF -> DEEK
-
-	ORG	4A5DH
-
-;-----	func DEEK(addr) -> word
-;	return the word at address addr
-DEEK	CALL	0A7FH		;CINT: convert value to INT into HL
-	LD	A,(HL)
-	INC	HL
-	LD	H,(HL)
-	LD	L,A
-	JP	0A9AH		;return INT value in HL into WRA1 (4121H)
 
 ;-----	stmt DRAW x1,y1,x2,y2,color
 ;	Draw a line from (x1,y1) to (x2,y2) in given color
@@ -1646,42 +1665,6 @@ DEL4	LD	A,(HL)
 	POP	HL
 	JR	DEL0
 
-END20	NOP
-	NOP
-	NOP
-
-;	END	2B2H
-
-;=====	XBAS30 12/04/86
-
-PTBCDE	EQU	09B4H
-CSNG	EQU	0AB1H
-SNGPSH	EQU	09A4H
-GTBCDE	EQU	09BFH
-SNGMUL	EQU	0847H
-SNGSUB	EQU	0713H
-SNGSQR	EQU	13E7H
-SNGDIV	EQU	08A2H
-SNGATN	EQU	15BDH
-CHKSGN	EQU	0994H
-
-	ORG	41A6H		;DOS exit for error processing
-	JP	XERROR		;BASIC Error intercept
-
-	ORG	4179H		;OPEN vector
-	JP	PLAY		;OPEN -> PLAY
-
-	ORG	40A4H		;Start of BASIC program location
-	DEFW	END30+1
-
-	ORG	4164H		;LOC vector
-	JP	ASN		;LOC -> ASN
-
-	ORG	4167H		;LOF vector
-	JP	ACS		;LOF -> ACS
-
-	ORG	4DACH
-
 ;-----	func ASN(x)
 ;	Get the arcsine of x.
 ASN	CALL	CSNG
@@ -1755,9 +1738,10 @@ PLAY	CALL	2337H		;evaluate expression ACC := EVAL(*HL)
 	PUSH	HL
 	CALL	29D7H		;get addr of current string ptr into HL
 	LD	(4040H),SP	;save SP (TODO: why?)
+	;DB	0EDH,0F5H	;*BREAK*
 PLAY1	LD	HL,PLAY1
 	PUSH	HL
-	LD	IY,PLAYI
+	LD	IY,FREQM1
 PLAY2	CALL	GET
 	CALL	INC
 	CP	'A'
@@ -1850,7 +1834,7 @@ PLAYE	CP	'<'
 	JR	NC,TESTF
 	SUB	'1'
 	SLA	A
-	ADD	A,2CH
+	ADD	A,DURM1-FREQM1
 	LD	(PLAYF+2),A
 	INC	A
 	LD	(PLAYG+2),A
@@ -1878,52 +1862,35 @@ TESTF	CP	'*'
 	POP	HL
 	RET
 
-PLAYI	SBC	A,H
-	AND	L
-	ADC	A,E
-	SUB	E
-	ADD	A,E
-	ADD	A,E
-	LD	(HL),L
-	LD	A,H
-	LD	L,B
-	LD	L,(HL)
-	LD	E,L
-	LD	H,D
-	LD	D,A
-	LD	D,A
-	LD	C,(HL)
-	LD	D,E
-	LD	B,L
-	LD	C,D
-	LD	B,D
-	LD	B,D
-	LD	A,(343EH)
-	SCF
-	LD	L,31H
-	INC	L
-	INC	L
-	DAA
-	ADD	HL,HL
-	INC	HL
-	DEC	H
-	LD	HL,1D21H
-	RRA
-	LD	A,(DE)
-	INC	E
-	RLA
-	ADD	HL,DE
-	LD	D,16H
-	INC	D
-	DEC	D
-	AND	E
-	XOR	B
-	LD	D,D
-	LD	D,H
-	LD	HL,(1529H)
-	INC	D
-	INC	E
-	DEC	DE
+FREQM1:	; Frequencies for Model I
+	DB	9CH,0A5H	;C1
+	DB	8BH,93H		;D1
+	DB	83H,83H		;E1
+	DB	75H,7CH		;F1
+	DB	68H,6EH		;G1
+	DB	5DH,62H		;A2
+	DB	57H,57H		;B2
+	DB	4EH,53H		;C2
+	DB	45H,4AH		;D2
+	DB	42H,42H		;E2
+	DB	3AH,3EH		;F2
+	DB	34H,37H		;G2
+	DB	2EH,31H		;A3
+	DB	2CH,2CH		;B3
+	DB	27H,29H		;C3
+	DB	23H,25H		;D3
+	DB	21H,21H		;E3
+	DB	1DH,1FH		;F3
+	DB	1AH,1CH		;G3
+	DB	17H,19H		;A4
+	DB	16H,16H		;B4
+	DB	13H,14H		;C4
+DURM1:	; Durations for Model I
+	DW	0A8A3H		;whole note
+	DW	05452H		;half note
+	DW	02A29H		;quarter note
+	DW	01514H		;eighth note
+	DW	01C1BH		;sixth note
 
 ;-----	Extended error message builder
 XERROR	POP	HL
@@ -1939,7 +1906,7 @@ XERR0	RST	10H		;skip blanks, peek next char in A, Z=0 if end of stmt, C if digit
 	JR	NZ,XERR0
 XERRZ	JP	1A01H		;disp error message in HL
 
-ERRMSG	DEFM	'NEXT without FOR'		;O1=NF
+ERRMSG	DEFM	'NEXT without FOR'		;01=NF
 	NOP
 	DEFM	'Syntax Error'			;02=SN
 	NOP
@@ -1990,58 +1957,6 @@ ERRMSG	DEFM	'NEXT without FOR'		;O1=NF
 	DEFM	'Undefined Function'		;18=UE
 	NOP
 
-END30	NOP
-	NOP
-	NOP
-
-;	END	2B2H
-
-;=====	XBAS40 12/04/86
-
-	ORG	4026H		;*PR DCB
-	DEFW	PR
-
-	ORG	41D3H		;PRINT TAB and PRINT#-1 DOS exit
-	JP	TAB255		;
-
-	ORG	4176H		;TIME$ vector
-	JP	LOC		;TIME$ -> LOC
-
-	ORG	418EH		;NAME vector
-	JP	MOVE		;NAME -> MOVE
-	JP	GENER		;KILL -> GENER
-
-	ORG	4197H		;LSET vector
-	JP	CALL		;LSET -> CALL
-	JP	DOKE		;RSET -> DOKE
-
-	ORG	41A0H		;SAVE vector
-	JP	RECUP		;SAVE -> RECUP
-
-	ORG	40A4H		;Start of BASIC program location
-	DEFW	END40+1
-
-	ORG	415EH		;CVD vector
-	JP	CAPS		;CVD -> CAPS$
-	JP	DEEK_		;EOF -> DEEK - TODO: removed, already implemented in XBAS20
-
-	ORG	416DH		;MKS$ vector
-	JP	HEX		;MKS$ -> HEX$
-	JP	BIN		;MKD$ -> BIN$
-
-	ORG	4173H		;CMD vector
-	JP	EXEC		;CMD -> EXEC
-
-	ORG	417CH		;FIELD vector
-	JP	ZAP		;FIELD -> ZAP
-	JP	BEEP		;GET -> BEEP
-
-	ORG	4185H		;CLOSE vector
-	JP	INVERS		;CLOSE -> INVERSE
-	JP	NOISE		;LOAD -> NOISE
-	JP	MERGE		;MERGE
-
-	ORG	50F4H
 EXEC	CALL	2337H		;evaluate expression ACC := EVAL(*HL)
 	CALL	2828H		;check for illegal direct
 	LD	(4050H),HL	;EXEC save HL
@@ -2385,9 +2300,9 @@ L52E0H	LDIR
 	POP	HL
 	RET
 
-;-----	Statement GENER addr,hexstr
+;-----	Statement STORE addr,hexstr
 ;	store bytes from hexstr to addr
-GENER	CALL	2B02H		;parse int value to DE
+STORE	CALL	2B02H		;parse int value to DE
 	PUSH	DE
 	RST	08H		;check next char
 	DEFB	','
@@ -2460,54 +2375,14 @@ CALL	CALL	2B02H		;parse int value to DE
 	POP	HL
 	RET
 
-;-----	stmt RECUP
+;-----	stmt RENEW
 ;	recover BASIC program after crash
-RECUP	LD	HL,(40A4H)	;start of BASIC program
+RENEW	LD	HL,(40A4H)	;start of BASIC program
 	INC	HL
 	LD	(HL),H
 	CALL	1AF8H		;Fix BASIC line pointers in program
 	INC	HL
 	JP	2C77H		;save BASIC program end addr and go to BASIC READY
-
-END40	NOP
-	NOP
-	NOP
-
-;	END	2B2H
-
-;=====	XBAS50 12/04/86
-
-	ORG	40ECH		;EDIT line number
-	DEFW	10
-
-	ORG	40E4H		;AUTO increment value
-	DEFW	10
-
-	ORG	4050H		;Entry point
-	LD	A,0C9H		;clear SYSTEM "/" vector
-	LD	(41E2H),A	;SYSTEM DOS exit
-	CALL	1B4DH		;call NEW routine
-	JP	6CCH		;BASIC READY
-
-	ORG	40A4H		;Start of BASIC program location
-	DEFW	END50+1
-
-	ORG	4155H		;FN vector
-	JP	FN0		;
-
-	ORG	415BH		;DEF vector
-	JP	DEF0
-
-	ORG	419DH		;INSTR vector
-	JP	INS50
-
-	ORG	41A9H		;USR0-9 vector
-	JP	US0
-
-	ORG	4194H		;'&' vector (&B,&0,&[H]...)
-	JP	AMPERS
-
-	ORG	534EH
 
 ;-----	func FN name(params)
 ;	user-defined function
@@ -2948,9 +2823,27 @@ TIMES2	ADD	HL,HL
 
 END50	NOP
 
-	ORG	41E2H		;SYSTEM DOS exit
-	JP	(HL)		;vector to autoexec
+	ORG	40A4H		;Start of BASIC program location
+	DEFW	END50+1
 
-	END	4050H
+	ORG	41E2H		; SYSTEM DOS exit
+	;DB	0EDH,0F5H	; *BREAK*
+	JP	(HL)		; vector to autoexec
+
+	ORG	4288H		; SYSTEM sets SP to 4288H
+INIT	;DB	0EDH,0F5H	; *BREAK*
+	LD	A,0C9H		; clear SYSTEM "/" vector
+	LD	(41E2H),A	; SYSTEM DOS exit
+	LD	HL,MVERS
+	CALL	2B75H		; disp null-terminated string
+	CALL	1B4DH		; call NEW routine
+	JP	6CCH		; BASIC READY
+
+
+MVERS	DEFVERS			; define version string
+
+	ASSERT	$ < 42E5H
+
+	END	INIT
 
 ;=====	END OF FILE
